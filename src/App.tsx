@@ -31,10 +31,9 @@ const App = ()=>{
 	};
 	const [gameState, dispatch] = useReducer(gameReducer, initialState);
 
-	const [isPlaying, setIsPlaying] = useState(false)
-
-
 	//useEffect(()=>resetAndCreateGrid(), []);
+
+	// Tempo do jogo
 
 	useEffect(()=>{
 		const timer = setInterval(()=>{
@@ -44,87 +43,83 @@ const App = ()=>{
 	}, [gameState.playing, gameState.timeElapsed]);
 
 	// verify if opened and equal
-	useEffect(()=>{
-		if(gameState.shownCount === 2) {
-			let opened = gameState.gridItems.filter(item => item.shown === true);
-			if(opened.length === 2) {
-				if(opened[0].item === opened[1].item) {
-					// v1 - if equals, to permanentShown;
-					dispatch(CheckGameAction(true));
-				} else {
-					// v2 - Are not equal, so close them;
-					setTimeout(()=>{
-						let tmpGrid = [...gameState.gridItems];
-						for(let i in tmpGrid) {
-							tmpGrid[i].shown = false;	
-						}	
-						dispatch(CheckGameAction(false));
-					}, 1000);
-				}
-			}
-		}
-	}, [gameState.shownCount, gameState.gridItems])
-
-	useEffect(()=>{
-		if(gameState.moveCount > 0 && gameState.gridItems.every(item => item.permanentShown === true)){
-			dispatch(GameOverAction());
-		}
-	}, [gameState.moveCount, gameState.gridItems]);
-
-	// Functions
-	const resetAndCreateGrid = ()=>{
-		// passo 1 - Resetar o jogo
-		// passo 2 - Criar o grid
-
-		// passo 2.1 - Criar o Grid vazio
-		let tmpGrid: GridItemType[] = [];
-		for(let i = 0; i < (items.length * 2); i++) {
-			tmpGrid.push({
-				item: null, permanentShown: false, shown: false
-			});
-		};
-		// passo 2.2 - Preencher o 
-		for(let w = 0; w < 2; w++) {
-			for(let i = 0; i < items.length; i++){
-				let pos = -1;
-				while(pos < 0 || tmpGrid[pos].item !== null) {
-					pos = Math.floor(Math.random() * (items.length * 2));
-				}
-				tmpGrid[pos].item = i;
-			}
-		}
-		dispatch(StartGameAction(tmpGrid));
-
-		// passo 2.3 - Jogar o state
-
-		// passo 3 - Começar o jogo
-	};
-	
-	/* const handleItemClick = (index:number) => {
-		if(playing && index !== null && shownCount < 2) {
-			let tmpGrid = [...gridItems];
-			if(tmpGrid[index].permanentShown === false && tmpGrid[index].shown === false) {
-				tmpGrid[index].shown = true;
-				setShownCount(shownCount + 1);
-			}
-			setGridItems(tmpGrid);
-		};
-	} */
-	const handleItemClick = (index:number) => {
-		if (gameState.playing && index != null && gameState.shownCount < 2) {
-			if (!gameState.gridItems[index].shown) {
-			  let newGrid = [...gameState.gridItems]
-	  
-			  if (!newGrid[index].permanentShown || !newGrid[index].shown) {
-				newGrid[index].shown = true
-				dispatch(IncreaseShownCountAction())
-				// setShownCount(prevState => prevState + 1)
-			  }
-			  dispatch(SetGridItemsAction(newGrid))
-			  // setGridItems(newGrid)
-			}
+	useEffect(() => {
+		if (gameState.shownCount === 2) {
+		  const openGrids = gameState.gridItems.filter(item => item.shown)
+		  // Verificação 1 - Se eles são iguais, manter eles abertos permanentemente
+		  if (openGrids[0].item === openGrids[1].item) {
+			dispatch(CheckGameAction(true))
+		  } else {
+			setTimeout(() => {
+			  dispatch(CheckGameAction(false))
+			}, 1000)
 		  }
 		}
+	  }, [gameState.shownCount, gameState.gridItems])
+
+	// End game
+	useEffect(() => {
+		if (gameState.playing) {
+		  if (gameState.gridItems.every((item: any) => item.permanentShown === true)) {
+			dispatch(GameOverAction())
+			// setIsPlaying(false)
+		  }
+		}
+	  }, [gameState.gridItems])
+
+	// Functions
+
+
+	function resetAndCreateGrid() {
+		// setTimeElapsed(0)
+		// setMoveCount(0)
+		// setShownCount(0)
+	
+		// passo 1 - criar o grid
+		// 1.1 - criar o grid vazio
+		let tempGrid: GridItemType[] = []
+	
+		for (let i = 0; i < (items.length * 2); i++) {
+		  tempGrid.push({
+			item: null,
+			shown: false,
+			permanentShown: false
+		  })
+		}
+	
+		// 1.2 - preencher o grid temporário
+		for (let i = 0; i < 2; i++) {
+		  for (let j = 0; j < items.length; j++) {
+			let pos = -1
+	
+			while (pos < 0 || tempGrid[pos].item !== null) {
+			  pos = Math.floor(Math.random() * (items.length * 2))
+			}
+	
+			tempGrid[pos].item = j
+		  }
+		}
+	
+		// passo 2 - resetar o jogo
+		dispatch(StartGameAction(tempGrid))
+	  }
+
+	function handleItemClick(index: number) {
+		if (gameState.playing && index != null && gameState.shownCount < 2) {
+		  if (!gameState.gridItems[index].shown) {
+			let newGrid = [...gameState.gridItems]
+	
+			if (!newGrid[index].permanentShown || !newGrid[index].shown) {
+			  newGrid[index].shown = true
+			  dispatch(IncreaseShownCountAction())
+			  // setShownCount(prevState => prevState + 1)
+			}
+	
+			dispatch(SetGridItemsAction(newGrid))
+			// setGridItems(newGrid)
+		  }
+		}
+	  }
 
 	// Return 
 	return (
@@ -137,6 +132,7 @@ const App = ()=>{
 					</C.LogoLink>
 
 					<C.InfoArea>
+						ShowCount: {gameState.shownCount}
 						<InfoItem label='Tempo' value={formatTimeElapsed(gameState.timeElapsed)}/>
 						<InfoItem label='Movimentos' value={gameState.moveCount.toString()}/>
 
